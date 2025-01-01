@@ -202,7 +202,7 @@ Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
 
 # Laravel E-Commerce Project Example: Category, Brand, Product
 
-এই উদাহরণটি একটি Laravel E-Commerce প্রজেক্টে Category, Brand, এবং Product মডিউল তৈরির জন্য একটি পূর্ণাঙ্গ গাইড।
+এই উদাহরণটি একটি Laravel E-Commerce প্রজেক্টে Category, Brand, এবং Product মডিউল তৈরির জন্য একটি পূর্ণাঙ্গ গাইড। এখানে Service Layer ব্যবহারের মাধ্যমে কোড আরও সংগঠিত করা হবে।
 
 ---
 
@@ -382,73 +382,175 @@ class Product extends Model
 
 ---
 
-## ধাপ ৪: কন্ট্রোলার তৈরি
+## ধাপ ৪: সার্ভিস লেয়ার তৈরি
+
+Service Layer তৈরি করে আমরা লজিকগুলো কন্ট্রোলারের বাইরে রাখব।
+
+### ৪.১: CategoryService
 
 ```bash
-php artisan make:controller CategoryController
-php artisan make:controller BrandController
-php artisan make:controller ProductController
+php artisan make:service CategoryService
 ```
 
-### ৪.১: CategoryController
+**CategoryService.php:**
 
 ```php
-namespace App\Http\Controllers;
+namespace App\Services;
 
-use Illuminate\Http\Request;
 use App\Models\Category;
 
-class CategoryController extends Controller
+class CategoryService
 {
-    public function index()
+    public function getAllCategories()
     {
         return Category::all();
     }
 
-    public function store(Request $request)
+    public function createCategory($data)
     {
-        $data = $request->validate(['name' => 'required|string|max:255']);
         return Category::create($data);
     }
 }
 ```
 
-### ৪.২: BrandController
+### ৪.২: BrandService
+
+```bash
+php artisan make:service BrandService
+```
+
+**BrandService.php:**
 
 ```php
-namespace App\Http\Controllers;
+namespace App\Services;
 
-use Illuminate\Http\Request;
 use App\Models\Brand;
 
-class BrandController extends Controller
+class BrandService
 {
-    public function index()
+    public function getAllBrands()
     {
         return Brand::all();
     }
 
-    public function store(Request $request)
+    public function createBrand($data)
     {
-        $data = $request->validate(['name' => 'required|string|max:255']);
         return Brand::create($data);
     }
 }
 ```
 
-### ৪.৩: ProductController
+### ৪.৩: ProductService
+
+```bash
+php artisan make:service ProductService
+```
+
+**ProductService.php:**
+
+```php
+namespace App\Services;
+
+use App\Models\Product;
+
+class ProductService
+{
+    public function getAllProducts()
+    {
+        return Product::with(['category', 'brand'])->get();
+    }
+
+    public function createProduct($data)
+    {
+        return Product::create($data);
+    }
+}
+```
+
+---
+
+## ধাপ ৫: কন্ট্রোলার আপডেট
+
+### ৫.১: CategoryController
 
 ```php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Product;
+use App\Services\CategoryService;
+
+class CategoryController extends Controller
+{
+    protected $categoryService;
+
+    public function __construct(CategoryService $categoryService)
+    {
+        $this->categoryService = $categoryService;
+    }
+
+    public function index()
+    {
+        return $this->categoryService->getAllCategories();
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:255']);
+        return $this->categoryService->createCategory($data);
+    }
+}
+```
+
+### ৫.২: BrandController
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Services\BrandService;
+
+class BrandController extends Controller
+{
+    protected $brandService;
+
+    public function __construct(BrandService $brandService)
+    {
+        $this->brandService = $brandService;
+    }
+
+    public function index()
+    {
+        return $this->brandService->getAllBrands();
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:255']);
+        return $this->brandService->createBrand($data);
+    }
+}
+```
+
+### ৫.৩: ProductController
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Services\ProductService;
 
 class ProductController extends Controller
 {
+    protected $productService;
+
+    public function __construct(ProductService $productService)
+    {
+        $this->productService = $productService;
+    }
+
     public function index()
     {
-        return Product::with(['category', 'brand'])->get();
+        return $this->productService->getAllProducts();
     }
 
     public function store(Request $request)
@@ -460,14 +562,14 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'stock' => 'required|integer',
         ]);
-        return Product::create($data);
+        return $this->productService->createProduct($data);
     }
 }
 ```
 
 ---
 
-## ধাপ ৫: রাউট সেটআপ
+## ধাপ ৬: রাউট সেটআপ
 
 `routes/web.php` ফাইলটি আপডেট করুন:
 
@@ -496,4 +598,4 @@ php artisan serve
 
 ---
 
-এই উদাহরণের মাধ্যমে আপনি Laravel ব্যবহার করে একটি মৌলিক E-Commerce অ্যাপ্লিকেশন তৈরি করতে পারবেন।
+এই উদাহরণের মাধ্যমে Service Layer ব্যবহার করে একটি পরিষ্কার এবং সংগঠিত Laravel E-Commerce অ্যাপ্লিকেশন তৈরি করা হয়েছে।
