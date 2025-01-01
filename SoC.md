@@ -199,3 +199,301 @@ Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
 - **Controller**: শুধুমাত্র HTTP request এবং response পরিচালনা করে।
 - **Service**: ব্যবসায়িক লজিক পরিচালনা করে।
 - **Model**: ডেটা ম্যানেজমেন্ট এবং ডেটাবেস সংযোগ পরিচালনা করে।
+
+# Laravel E-Commerce Project Example: Category, Brand, Product
+
+এই উদাহরণটি একটি Laravel E-Commerce প্রজেক্টে Category, Brand, এবং Product মডিউল তৈরির জন্য একটি পূর্ণাঙ্গ গাইড।
+
+---
+
+## ধাপ ১: প্রকল্প সেটআপ
+
+নতুন Laravel প্রকল্প তৈরি করুন:
+
+```bash
+composer create-project laravel/laravel ecommerce-app
+```
+
+`.env` ফাইলটি আপডেট করে ডেটাবেস সেটআপ করুন।
+
+---
+
+## ধাপ ২: মাইগ্রেশন তৈরি
+
+### ২.১: Category মাইগ্রেশন
+
+```bash
+php artisan make:migration create_categories_table --create=categories
+```
+
+**categories টেবিলের জন্য মাইগ্রেশন ফাইলটি আপডেট করুন:**
+
+```php
+// database/migrations/xxxx_xx_xx_create_categories_table.php
+public function up()
+{
+    Schema::create('categories', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->timestamps();
+    });
+}
+```
+
+### ২.২: Brand মাইগ্রেশন
+
+```bash
+php artisan make:migration create_brands_table --create=brands
+```
+
+**brands টেবিলের জন্য মাইগ্রেশন ফাইলটি আপডেট করুন:**
+
+```php
+// database/migrations/xxxx_xx_xx_create_brands_table.php
+public function up()
+{
+    Schema::create('brands', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->timestamps();
+    });
+}
+```
+
+### ২.৩: Product মাইগ্রেশন
+
+```bash
+php artisan make:migration create_products_table --create=products
+```
+
+**products টেবিলের জন্য মাইগ্রেশন ফাইলটি আপডেট করুন:**
+
+```php
+// database/migrations/xxxx_xx_xx_create_products_table.php
+public function up()
+{
+    Schema::create('products', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
+        $table->decimal('price', 8, 2);
+        $table->integer('stock');
+        $table->timestamps();
+    });
+}
+```
+
+মাইগ্রেশন রান করুন:
+
+```bash
+php artisan migrate
+```
+
+---
+
+## ধাপ ৩: মডেল তৈরি
+
+### ৩.১: Category মডেল
+
+```bash
+php artisan make:model Category
+```
+
+**Category.php:**
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Category extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['name'];
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+}
+```
+
+### ৩.২: Brand মডেল
+
+```bash
+php artisan make:model Brand
+```
+
+**Brand.php:**
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Brand extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['name'];
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+}
+```
+
+### ৩.৩: Product মডেল
+
+```bash
+php artisan make:model Product
+```
+
+**Product.php:**
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['name', 'category_id', 'brand_id', 'price', 'stock'];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+}
+```
+
+---
+
+## ধাপ ৪: কন্ট্রোলার তৈরি
+
+```bash
+php artisan make:controller CategoryController
+php artisan make:controller BrandController
+php artisan make:controller ProductController
+```
+
+### ৪.১: CategoryController
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Category;
+
+class CategoryController extends Controller
+{
+    public function index()
+    {
+        return Category::all();
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:255']);
+        return Category::create($data);
+    }
+}
+```
+
+### ৪.২: BrandController
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Brand;
+
+class BrandController extends Controller
+{
+    public function index()
+    {
+        return Brand::all();
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:255']);
+        return Brand::create($data);
+    }
+}
+```
+
+### ৪.৩: ProductController
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Product;
+
+class ProductController extends Controller
+{
+    public function index()
+    {
+        return Product::with(['category', 'brand'])->get();
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'required|exists:brands,id',
+            'price' => 'required|numeric',
+            'stock' => 'required|integer',
+        ]);
+        return Product::create($data);
+    }
+}
+```
+
+---
+
+## ধাপ ৫: রাউট সেটআপ
+
+`routes/web.php` ফাইলটি আপডেট করুন:
+
+```php
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\BrandController;
+use App\Http\Controllers\ProductController;
+
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::post('/categories', [CategoryController::class, 'store']);
+
+Route::get('/brands', [BrandController::class, 'index']);
+Route::post('/brands', [BrandController::class, 'store']);
+
+Route::get('/products', [ProductController::class, 'index']);
+Route::post('/products', [ProductController::class, 'store']);
+```
+
+---
+
+## সার্ভার চালান
+
+```bash
+php artisan serve
+```
+
+---
+
+এই উদাহরণের মাধ্যমে আপনি Laravel ব্যবহার করে একটি মৌলিক E-Commerce অ্যাপ্লিকেশন তৈরি করতে পারবেন।
